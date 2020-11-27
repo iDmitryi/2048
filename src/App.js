@@ -1,48 +1,69 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
 import './App.css';
 
+function Tile(props) {
+    const colors = {
+        0: '#ffff99',
+        1: '#ffff33',
+        2: '#ffad33',
+        4: '#d86400',
+        8: '#de4000'
+    }
 
-function Board() {
+    return (
+        <div 
+            className="tile" 
+            style={{backgroundColor: colors[Math.floor(props.value % 15)]}}>
+            {(props.value > 0) ? props.value : ''}
+        </div>
+    )
+}
 
-    // Setup
-    const [tiles, setTiles] = useState( [ [0, 2, 0, 2], [4, 0, 0, 8], [0, 4, 2, 0], [0, 2, 0, 0] ] );
-
-    useEffect(() => {
-            document.body.addEventListener('keydown', keyPressHandler);
-            setTiles(addRandomTile(tiles))
-
-            return () => {
-                document.body.removeEventListener('keydown', keyPressHandler);
-            }
-        }, []);
-
-
-    function Tile(props) {
-        const colors = {
-            0: '#ffff99',
-            1: '#ffff33',
-            2: '#ffad33',
-            4: '#d86400'
-        }
-
-        return (
-            <div 
-                className="tile" 
-                style={{backgroundColor: colors[Math.floor(props.value / 2)]}}>
-                {(props.value > 0) ? props.value : ''}
+function ScoreBoard(props) {
+    return (
+        <div className="score">
+            <div>
+                <h3>Score: {props.score}</h3>
             </div>
-        )
+            <div className="gameStatus">
+                <h1>{props.gameOver ? 'GAME OVER!' : ''}</h1>
+                <h1>{props.youHaveWon ? 'YOU WON!' : ''}</h1>
+            </div>
+        </div>
+    )
+}
+
+class Board extends React.Component {
+
+    constructor(props){
+      super(props);
+
+      this.state = {
+        tiles: this.initiateBoard(),
+        score: 0,
+        gameOver: false,
+        youHaveWon: false
+      }
+    }    
+
+    componentDidMount() {
+        console.log('SUBSCRIBE')
+        document.addEventListener("keydown", this.keyPressHandler.bind(this));
     }
 
+    componentWillUnmount() {
+        console.log('UN-SUBSCRIBE')
+        document.removeEventListener("keydown", this.keyPressHandler.bind(this));
+    } 
 
-    function renderTile(row, col) {
-        return (
-            <Tile value={tiles[row][col]} />
-        )
+    
+    initiateBoard() {
+        const tiles = Array(4).fill(Array(4).fill(0))
+        return this.addRandomTile(tiles, 2)
     }
 
-
-    function zerosToBottom(a, b) {
+    
+    zerosToBottom(a, b) {
         // Callback-function for array.sort()
         // If a tile value is greater than 0, it gets sorted to a higher index,
         // and vice versa. 
@@ -57,64 +78,128 @@ function Board() {
         }
     }
 
-
-    function getColumn(tiles, column_index) {
-        const column = [];
-        tiles.forEach((row) => {column.push(row[column_index])});
-        return column;
-
+    transposeMatrix(arr) {
+        return arr[0].map((_,colIndex) => arr.map((row) => row[colIndex]));
     }
 
+    increaseScore(value) {
+        this.setState({'score': this.state.score += value});
+    }
 
-    function move(tiles, direction) {
+    handleCollisions(row, direction) {
+        // Iterate over row in opposite direction of player's move. Adjacent 
+        // tiles with the same value gets added up and assigned to the tile
+        // farthes away in the direction of the move. The other is set to 0.
+        
+        let dir = 1
+        
+        if (direction === 'right' || direction === 'down') {
+            row.reverse()
+            dir = -1
+        }
 
-        if (direction === 'right') {
-            tiles.forEach((row) => {
-                row.sort(zerosToBottom);
+        for (var i = 0; i<row.length; i++) {
+
+            if ((row[i] === row[i+dir]) && (row[i] > 0)) {
+                let newValue = row[i] + row[i+dir];
+                row[i] = newValue;
+                row[i+dir] = 0;
+                this.increaseScore(newValue);
+            }
+        }
+
+        if (direction === 'right' || direction === 'down') {
+            row.reverse()
+        }
+
+        return row
+    }
+
+    move(tiles, direction) {
+        tiles = this.state.tiles;
+
+        // Transpose board
+        if (direction === 'up' || direction === 'down'){
+            tiles = this.transposeMatrix(tiles)
+            }
+
+        // TODO make switch sttement of this...
+        if (direction === 'right' || direction === 'down') {
+            // Move, collide, move again to cover up empty spaces.
+            tiles = tiles.map((row) => {
+                row.sort(this.zerosToBottom);
+                let collided = this.handleCollisions(row, 'right')
+                collided.sort(this.zerosToBottom)
+                return collided;
             });
         }
 
-        else if (direction === 'left') {
-            tiles.forEach((row) => {
+        else if (direction === 'left' || direction === 'up') {
+            tiles = tiles.map((row) => {
+                // Reverse row first so same sorting algorithm can be used.
+                // Move, collide, move again to cover up empty spaces.
                 row.reverse();
-                row.sort(zerosToBottom);
-                row.reverse();
+                row.sort(this.zerosToBottom);
+                let collided = this.handleCollisions(row, 'left')
+                collided.sort(this.zerosToBottom)
+                collided.reverse()
+                return collided;
             });
         }
+
+        // Transpose it back again
+        if (direction === 'up' || direction === 'down'){
+            tiles = this.transposeMatrix(tiles)
+            }
 
         return tiles;
     }
 
 
-    function keyPressHandler(e) {
+    checkGameStatus(tiles) {
+        const tilesFlatArray = [].concat(...tiles);
+        const emptyTiles = this.getEmptyTilesIndexes(tilesFlatArray)
+        if (emptyTiles.length < 1) {
+            this.setState({gameOver: true})
+        }
+
+        this.setState({youHaveWon: tilesFlatArray.includes(2048)})
+    }
+
+
+    keyPressHandler(e) {
+        let tiles = this.state.tiles
+        let newTiles = null;
 
         switch(e.key) {
             case "ArrowUp":
-                setTiles(move(tiles,'up'))
+                newTiles = this.move(tiles, 'up')
                 break;
 
             case "ArrowDown":
-                setTiles(move(tiles,'down'))
+                newTiles = this.move(tiles, 'down')
                 break;
 
             case "ArrowLeft":
-                setTiles(move(tiles,'left'))
+                newTiles = this.move(tiles, 'left')
                 break;
 
             case "ArrowRight":
-                setTiles(move(tiles,'right'))
+                newTiles = this.move(tiles, 'right')
                 break;
 
             default:
                 return;
         }
 
-         setTiles( addRandomTile(tiles) )
+        newTiles = this.addRandomTile(newTiles);
+        this.setState({'tiles':newTiles})
+        this.checkGameStatus(this.state.tiles);
 
     }
 
 
-    function getEmptyTilesIndexes(tiles) {
+    getEmptyTilesIndexes(tiles) {
         const emptyTilesIndexes = [];
 
         tiles.forEach((item, index) => {
@@ -127,7 +212,7 @@ function Board() {
     }
 
 
-    function makeRows(flatArr) {
+    makeRows(flatArr) {
         const rows = [];
         let i;
 
@@ -138,56 +223,49 @@ function Board() {
     }
 
 
-    function getRandom(arr) {
+    getRandom(arr) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
         
 
-    function addRandomTile(tiles) {        
+    addRandomTile(tiles, no=1) {        
         const tilesFlatArray = [].concat(...tiles);
-        const emptyTiles = getEmptyTilesIndexes(tilesFlatArray);
-        const randTileIndex = getRandom(emptyTiles);
-        const randValue = getRandom([2,4]); // The random added tile should have a value of 2 or 4.
+        for (let i = 0; i < no; i++){
+            const emptyTiles = this.getEmptyTilesIndexes(tilesFlatArray);
+            const randTileIndex = this.getRandom(emptyTiles);
+            const randValue = this.getRandom([2,4]); // The random added tile should have a value of 2 or 4.
 
-        tilesFlatArray[randTileIndex] = randValue;
-        tiles = makeRows(tilesFlatArray);
+            tilesFlatArray[randTileIndex] = randValue;
+        }
+
+        tiles = this.makeRows(tilesFlatArray);
+
 
         return tiles;
     }
 
 
-    return (
-        <div className="board">
-            <table className="table">
-            <tbody>
+    renderRow(row) {
+        return (
             <tr className="row">
-                <td>{renderTile(0,0)}</td>
-                <td>{renderTile(0,1)}</td>
-                <td>{renderTile(0,2)}</td>
-                <td>{renderTile(0,3)}</td>
+                {row.map((tile, i) => <td key={i.toString()}><Tile value={tile} /></td>)}
             </tr>
-            <tr className="row">
-                <td>{renderTile(1,0)}</td>
-                <td>{renderTile(1,1)}</td>
-                <td>{renderTile(1,2)}</td>
-                <td>{renderTile(1,3)}</td>
-            </tr>            
-            <tr className="row">
-                <td>{renderTile(2,0)}</td>
-                <td>{renderTile(2,1)}</td>
-                <td>{renderTile(2,2)}</td>
-                <td>{renderTile(2,3)}</td>
-            </tr>            
-            <tr className="row">
-                <td>{renderTile(3,0)}</td>
-                <td>{renderTile(3,1)}</td>
-                <td>{renderTile(3,2)}</td>
-                <td>{renderTile(3,3)}</td>
-            </tr>
-            </tbody>
-            </table>
-        </div>
-    );
+
+        )
+    }
+
+    render() {
+        return (
+            <div className="board">
+                <ScoreBoard score={this.state.score} gameOver={this.state.gameOver} youHaveWon={this.state.youHaveWon} />
+                <table className="table">
+                <tbody>
+                    {this.state.tiles.map((row) => this.renderRow(row))}
+                </tbody>
+                </table>
+            </div>
+        );
+    }   
 }
 
 

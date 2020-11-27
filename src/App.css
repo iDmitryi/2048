@@ -10,12 +10,19 @@ table {
   border-radius: 3px;
 }
 
+.board {
+  display: grid;
+}
+
+.score {
+  margin: auto;
+}
+
 .tile {
   font-size: 4em;
   width: 1.5em;
   height: 1.5em;
   text-align: center;
   vertical-align: middle;
-  /*border: solid 1px;*/
   border-radius: 3px; 
 }
