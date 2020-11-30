@@ -1,4 +1,5 @@
 import React from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 
 function Tile(props) {
@@ -19,51 +20,61 @@ function Tile(props) {
     )
 }
 
+function GameOverDiv(props) {
+    return (
+        <div className='gameOver' ><h1>GAME OVER</h1></div>
+        )
+}
+
+function RestartButton(props) {
+        return (
+            <button onClick={props.clickHandler}>
+                Restart
+            </button>
+            )
+}
+
 function ScoreBoard(props) {
     return (
         <div className="score">
             <div>
                 <h3>Score: {props.score}</h3>
             </div>
-            <div className="gameStatus">
-                <h1>{props.gameOver ? 'GAME OVER!' : ''}</h1>
-                <h1>{props.youHaveWon ? 'YOU WON!' : ''}</h1>
-            </div>
         </div>
     )
 }
 
-class Board extends React.Component {
+function Board(props) {
 
-    constructor(props){
-      super(props);
+    const [tiles, setTiles] = useState(initiateBoard());
+    const [score, setScore] = useState(0);
+    // TODO merge to gameStatus (null, gamoOver, gameWon)
+    // const [gameStatus, setStatus] = useState()
+    const [gameOver, setGameOver] = useState(false);
+    const [youHaveWon, setGameWon] = useState(false);
 
-      this.state = {
-        tiles: this.initiateBoard(),
-        score: 0,
-        gameOver: false,
-        youHaveWon: false
-      }
-    }    
+    useEffect( () => {
+        if (gameOver === false){
+            document.addEventListener('keydown', keyPressHandler);
+        }
 
-    componentDidMount() {
-        console.log('SUBSCRIBE')
-        document.addEventListener("keydown", this.keyPressHandler.bind(this));
-    }
+        return () => {
+            document.removeEventListener('keydown', keyPressHandler);
+        }
+    })
 
-    componentWillUnmount() {
-        console.log('UN-SUBSCRIBE')
-        document.removeEventListener("keydown", this.keyPressHandler.bind(this));
-    } 
+    useEffect( () => {
+      checkGameStatus(tiles);  
+    }, [tiles])
 
-    
-    initiateBoard() {
+   
+    function initiateBoard() {
         const tiles = Array(4).fill(Array(4).fill(0))
-        return this.addRandomTile(tiles, 2)
+        return addRandomTile(tiles, 2)
     }
 
     
-    zerosToBottom(a, b) {
+    function zerosToBottom(a, b) {
         // Callback-function for array.sort()
         // If a tile value is greater than 0, it gets sorted to a higher index,
         // and vice versa. 
@@ -78,15 +89,15 @@ class Board extends React.Component {
         }
     }
 
-    transposeMatrix(arr) {
+    function transposeMatrix(arr) {
         return arr[0].map((_,colIndex) => arr.map((row) => row[colIndex]));
     }
 
-    increaseScore(value) {
-        this.setState({'score': this.state.score += value});
+    function increaseScore(value) {
+        setScore(score + value);
     }
 
-    handleCollisions(row, direction) {
+    function handleCollisions(row, direction) {
         // Iterate over row in opposite direction of player's move. Adjacent 
         // tiles with the same value gets added up and assigned to the tile
         // farthes away in the direction of the move. The other is set to 0.
@@ -104,7 +115,7 @@ class Board extends React.Component {
                 let newValue = row[i] + row[i+dir];
                 row[i] = newValue;
                 row[i+dir] = 0;
-                this.increaseScore(newValue);
+                increaseScore(newValue);
             }
         }
 
@@ -115,21 +126,20 @@ class Board extends React.Component {
         return row
     }
 
-    move(tiles, direction) {
-        tiles = this.state.tiles;
+    function move(tiles, direction) {
 
         // Transpose board
         if (direction === 'up' || direction === 'down'){
-            tiles = this.transposeMatrix(tiles)
+            tiles = transposeMatrix(tiles)
             }
 
         // TODO make switch sttement of this...
         if (direction === 'right' || direction === 'down') {
             // Move, collide, move again to cover up empty spaces.
             tiles = tiles.map((row) => {
-                row.sort(this.zerosToBottom);
-                let collided = this.handleCollisions(row, 'right')
-                collided.sort(this.zerosToBottom)
+                row.sort(zerosToBottom);
+                let collided = handleCollisions(row, 'right')
+                collided.sort(zerosToBottom)
                 return collided;
             });
         }
@@ -139,9 +149,9 @@ class Board extends React.Component {
                 // Reverse row first so same sorting algorithm can be used.
                 // Move, collide, move again to cover up empty spaces.
                 row.reverse();
-                row.sort(this.zerosToBottom);
-                let collided = this.handleCollisions(row, 'left')
-                collided.sort(this.zerosToBottom)
+                row.sort(zerosToBottom);
+                let collided = handleCollisions(row, 'left')
+                collided.sort(zerosToBottom)
                 collided.reverse()
                 return collided;
             });
@@ -149,57 +159,56 @@ class Board extends React.Component {
 
         // Transpose it back again
         if (direction === 'up' || direction === 'down'){
-            tiles = this.transposeMatrix(tiles)
+            tiles = transposeMatrix(tiles)
             }
 
         return tiles;
     }
 
 
-    checkGameStatus(tiles) {
+    function checkGameStatus(tiles) {
         const tilesFlatArray = [].concat(...tiles);
-        const emptyTiles = this.getEmptyTilesIndexes(tilesFlatArray)
+        const emptyTiles = getEmptyTilesIndexes(tilesFlatArray)
         if (emptyTiles.length < 1) {
-            this.setState({gameOver: true})
+            setGameOver(true);
         }
-
-        this.setState({youHaveWon: tilesFlatArray.includes(2048)})
+        if (tilesFlatArray.includes(2048)) {
+            setGameWon(true)
+            setGameOver(true)
+        }
     }
 
 
-    keyPressHandler(e) {
-        let tiles = this.state.tiles
-        let newTiles = null;
+    function keyPressHandler(e) {
+        let newTiles = [];
 
         switch(e.key) {
             case "ArrowUp":
-                newTiles = this.move(tiles, 'up')
+                newTiles = move(tiles, 'up')
                 break;
 
             case "ArrowDown":
-                newTiles = this.move(tiles, 'down')
+                newTiles = move(tiles, 'down')
                 break;
 
             case "ArrowLeft":
-                newTiles = this.move(tiles, 'left')
+                newTiles = move(tiles, 'left')
                 break;
 
             case "ArrowRight":
-                newTiles = this.move(tiles, 'right')
+                newTiles = move(tiles, 'right')
                 break;
 
             default:
                 return;
         }
 
-        newTiles = this.addRandomTile(newTiles);
-        this.setState({'tiles':newTiles})
-        this.checkGameStatus(this.state.tiles);
-
+        newTiles = addRandomTile(newTiles);
+        setTiles([...newTiles])
     }
 
 
-    getEmptyTilesIndexes(tiles) {
+    function getEmptyTilesIndexes(tiles) {
         const emptyTilesIndexes = [];
 
         tiles.forEach((item, index) => {
@@ -212,7 +221,7 @@ class Board extends React.Component {
     }
 
 
-    makeRows(flatArr) {
+    function makeRows(flatArr) {
         const rows = [];
         let i;
 
@@ -223,49 +232,56 @@ class Board extends React.Component {
     }
 
 
-    getRandom(arr) {
+    function getRandom(arr) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
         
 
-    addRandomTile(tiles, no=1) {        
+    function addRandomTile(tiles, no=1) {        
         const tilesFlatArray = [].concat(...tiles);
         for (let i = 0; i < no; i++){
-            const emptyTiles = this.getEmptyTilesIndexes(tilesFlatArray);
-            const randTileIndex = this.getRandom(emptyTiles);
-            const randValue = this.getRandom([2,4]); // The random added tile should have a value of 2 or 4.
+            const emptyTiles = getEmptyTilesIndexes(tilesFlatArray);
+            const randTileIndex = getRandom(emptyTiles);
+            const randValue = getRandom([2,4]); // The random added tile should have a value of 2 or 4.
 
             tilesFlatArray[randTileIndex] = randValue;
         }
 
-        tiles = this.makeRows(tilesFlatArray);
-
+        tiles = makeRows(tilesFlatArray);
 
         return tiles;
     }
 
+    function restartHandler() {
+        setGameOver(false);
+        setGameWon(false);
+        setScore(0);
+        setTiles(initiateBoard());
+    }
 
-    renderRow(row) {
+
+    function renderRow(row) {
         return (
             <tr className="row">
                 {row.map((tile, i) => <td key={i.toString()}><Tile value={tile} /></td>)}
             </tr>
-
         )
     }
 
-    render() {
-        return (
+    return (
+        <div className="container">
+            <ScoreBoard score={score} />
             <div className="board">
-                <ScoreBoard score={this.state.score} gameOver={this.state.gameOver} youHaveWon={this.state.youHaveWon} />
+                {gameOver ? <GameOverDiv /> : null}
                 <table className="table">
                 <tbody>
-                    {this.state.tiles.map((row) => this.renderRow(row))}
+                    {tiles.map((row) => renderRow(row))}
                 </tbody>
                 </table>
             </div>
-        );
-    }   
+                {gameOver ? <RestartButton clickHandler={restartHandler} /> : null}
+        </div>
+    );
 }
 
 
