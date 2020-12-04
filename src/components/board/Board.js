@@ -19,6 +19,7 @@ function Board(props) {
     const [tiles, setTiles] = useState(initiateBoard());
     const [score, setScore] = useState(0);
     const [gameStatus, setGameStatus] = useState(false);
+    const [highScore, setHighScore] = useState(0);
 
     useEffect( () => {
         if (gameStatus === false){
@@ -33,6 +34,10 @@ function Board(props) {
     useEffect( () => {
       checkGameStatus(tiles);  
     }, [tiles])
+
+    useEffect( () => {
+        setHighScore( (score > highScore) ? score : highScore )
+    },[gameStatus])
 
 // =====
 
@@ -79,9 +84,9 @@ function Board(props) {
         setTiles(initiateBoard());
     }
 
-    function renderRow(row) {
+    function renderRow(row, row_index) {
         return (
-            <tr className="row">
+            <tr key={row_index} className="row">
                 {row.map((tile, i) => <td key={i.toString()}><Tile value={tile} /></td>)}
             </tr>
         )
@@ -89,12 +94,12 @@ function Board(props) {
 
     return (
         <div className="container">
-            <ScoreBoard score={score} />
+            <ScoreBoard score={score} highscore={highScore} />
             <div className="board">
                 {(gameStatus !== false) ? <GameOverDiv status={gameStatus} /> : null}
                 <table className="table">
                 <tbody>
-                    {tiles.map((row) => renderRow(row))}
+                    {tiles.map((row, i) => renderRow(row, i))}
                 </tbody>
                 </table>
             </div>

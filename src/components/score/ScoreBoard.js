@@ -1,8 +1,11 @@
-function ScoreBoard(props) {
+function ScoreBoard( {score, highscore} ) {
     return (
         <div className="score">
-            <div>
-                <h3>Score: {props.score}</h3>
+            <div style={{'float':'left'}}>
+                <h3>Score: {score}</h3>
+            </div>
+            <div style={{'float':'right'}}>
+            	<h3>Highscore: {highscore}</h3>
             </div>
         </div>
     )
