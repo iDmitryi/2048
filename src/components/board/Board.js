@@ -16,10 +16,11 @@ function Board(props) {
 
 // SETUP
 // =====
+
     const [tiles, setTiles] = useState(initiateBoard());
     const [score, setScore] = useState(0);
     const [gameStatus, setGameStatus] = useState(false);
-    const [highScore, setHighScore] = useState(0);
+    const [highScore, setHighScore] = useState( () => localStorage.getItem('2048_highscore') || 0 );
 
     useEffect( () => {
         if (gameStatus === false){
@@ -32,12 +33,13 @@ function Board(props) {
     })
 
     useEffect( () => {
-      checkGameStatus(tiles);  
+        checkGameStatus(tiles);  
+        setHighScore( (score > highScore) ? score : highScore )
     }, [tiles])
 
     useEffect( () => {
-        setHighScore( (score > highScore) ? score : highScore )
-    },[gameStatus])
+        localStorage.setItem('2048_highscore', highScore);
+    },[highScore])
 
 // =====
 
