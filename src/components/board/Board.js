@@ -60,6 +60,7 @@ function Board(props) {
     }
 
     function keyPressHandler(e) {
+        const prevTiles = [].concat(...tiles);
         let newTiles = [];
         let moveScore = 0;
 
@@ -75,7 +76,10 @@ function Board(props) {
                 return;
         }
 
-        newTiles = addRandomTile(newTiles);
+        // Check if move changed board. If so, add new random tile.
+        const nothingHappened = prevTiles.every( (tile, index) => tile === [].concat(...newTiles)[index] );
+        newTiles = nothingHappened ? newTiles : addRandomTile(newTiles);
+        
         increaseScore(moveScore);
         setTiles([...newTiles]);
     }
@@ -100,12 +104,12 @@ function Board(props) {
             <div className="board">
                 {(gameStatus !== false) ? <GameOverDiv status={gameStatus} /> : null}
                 <table className="table">
-                <tbody>
-                    {tiles.map((row, i) => renderRow(row, i))}
-                </tbody>
+                    <tbody>
+                        {tiles.map((row, i) => renderRow(row, i))}
+                    </tbody>
                 </table>
             </div>
-                {(gameStatus !== false) ? <RestartButton clickHandler={restartHandler} /> : null}
+            {(gameStatus !== false) ? <RestartButton clickHandler={restartHandler} /> : null}
         </div>
     );
 }
