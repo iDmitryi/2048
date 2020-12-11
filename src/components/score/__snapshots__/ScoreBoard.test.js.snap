@@ -1,0 +1,32 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ScoreBoard shows score and highscore 1`] = `
+<div
+  className="score"
+>
+  <div
+    style={
+      Object {
+        "float": "left",
+      }
+    }
+  >
+    <h3>
+      Score: 
+      8
+    </h3>
+  </div>
+  <div
+    style={
+      Object {
+        "float": "right",
+      }
+    }
+  >
+    <h3>
+      Highscore: 
+      256
+    </h3>
+  </div>
+</div>
+`;

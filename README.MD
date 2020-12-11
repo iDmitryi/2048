@@ -17,6 +17,13 @@ Prerequisites:
 In the root directory run:  
 `npm install`
 
+## TESTS
+
+In the root directory run:  
+`npm test`
+
+This will run the test suite.
+
 ## RUN
 
 In the root directory run:  

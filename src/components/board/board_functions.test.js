@@ -1,5 +1,3 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
 
 import { initiateBoard,
 		zerosToBottom,
@@ -69,7 +67,7 @@ describe('makeRows', () => {
 describe('addRandomTile', () => {
 	let input = Array(4).fill(Array(4).fill(0));
 
-	it('returns an 4 by 4 matrix with some element of value 2 or 4', () => {
+	it('returns an 4 by 4 matrix with one element of value 2 or 4', () => {
 		let output = addRandomTile(input)
 		// Matrix with all zeroes
 		// Flatten and srtringify output to make test easier
@@ -80,16 +78,4 @@ describe('addRandomTile', () => {
 			expect.arrayContaining(
 				[expect.stringMatching(/[2|4]/)]))
 	});
-
-	it('returns an array with one element that is not zero.', () => {
-		let output = addRandomTile(input)
-		let flatOutput = [].concat(...output);
-
-		expect(!flatOutput.includes(0)).toBeTruthy()
-
-		expect
-
-	});
-})
-
-
+});
