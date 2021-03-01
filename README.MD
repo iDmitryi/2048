@@ -1,6 +1,7 @@
 # 2048
 ##### A React App made by Peter Ahlstrom in November 2020.
 
+![](demo/demo.gif)
 
 ## SUMMARY
 This app is a React implementation of the game 2048.
